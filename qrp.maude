@@ -1,0 +1,271 @@
+load ket-as4qc/qc.maude
+
+fmod QVAR is
+    pr QID .
+    sorts QVar Reg .
+    subsort QVar < Reg .
+    --- quantum variables
+    op v : Qid -> QVar [ctor] .
+    --- quantum registers
+    op nil : -> Reg [ctor] .
+    op _,_ : Reg Reg -> Reg [ctor assoc id: nil] .
+endfm
+
+view QVar from TRIV to QVAR is
+  sort Elt to QVar .
+endv
+
+view Reg from TRIV to QVAR is
+  sort Elt to Reg .
+endv
+
+fmod NAME is
+    pr QID .
+    sort Name .
+    op n : Qid -> Name [ctor] .
+endfm
+
+view Name from TRIV to NAME is
+  sort Elt to Name .
+endv
+
+fmod SYNTAX is
+    pr QVAR .
+    pr NAME .
+    pr NAT .
+
+    sorts Com Prog Gate Meas .
+    subsort Com < Prog .
+    
+    --- quantum gates
+    ops I X Y Z H S T  : -> Gate . --- symbols representing one-qubit gates
+    ops CX CY CZ SWAP  : -> Gate . --- symbols representing two-qubit gates
+    ops CCX CCZ CSWAP  : -> Gate . --- symbols representing three-qubit gates
+
+    --- measurement
+    op M[_] : QVar -> Meas .
+
+    --- for skip
+    op skip : -> Com [ctor] .
+    --- for unitary transformation
+    op _[_] : Gate Reg -> Com [ctor] .
+    --- for sequential composition
+    op emp : -> Prog [ctor] .
+    op _;_ : Prog Prog -> Prog [ctor prec 42 assoc id: emp] .
+    --- for if_then_else_fi
+    op if_=_then_else_fi : Meas Nat Prog Prog -> Com [ctor] .
+    --- for while ... od
+    op while_=_do_od : Meas Nat Prog -> Com [ctor] .
+    --- for procedure definition
+    op proc_`(_`) `{_`} : Name Reg Prog -> Com [ctor] .
+    --- for procedure call
+    op call_`(_`) : Name Reg -> Com [ctor] .
+    --- for return
+    op return : -> Com [ctor] .
+    --- for atomic fragments
+    op atomic`{_`} : Prog -> Com [ctor] .
+endfm
+
+view Prog from TRIV to SYNTAX is
+  sort Elt to Prog .
+endv
+
+--- Variable environment         
+fmod VENV is
+    pr MAP{QVar,Nat} * (
+        sort Map{QVar,Nat} to VEnv, 
+        sort Entry{QVar,Nat} to VEntry,
+        op empty to empVEnv
+    ) .
+
+    vars V1 V2 : QVar .
+    vars R1 R2 : Reg .
+    vars VE : VEnv .
+    vars N : Nat .
+
+    op resolve : Reg Reg VEnv -> VEnv .
+    eq resolve((V1, R1), (V2, R2), (V2 |-> N, VE)) = V1 |-> N, resolve(R1, R2, VE)  .
+    eq resolve(nil, nil, VE) = empVEnv .
+
+    op size : VEnv -> Nat .
+    eq size(empVEnv) = 0 .
+    eq size((V1 |-> N, VE)) = 1 + size(VE) .
+endfm
+
+view VEnv from TRIV to VENV is
+  sort Elt to VEnv .
+endv
+
+fmod STACK{X :: TRIV} is
+    sorts NeStack{X} Stack{X}  .
+    subsort X$Elt < NeStack{X} < Stack{X} .
+    
+    op undefined : -> [X$Elt] [ctor] .
+    op empty : -> Stack{X} [ctor] .
+    op push : Stack{X} X$Elt -> NeStack{X} [ctor] .
+    op peak : Stack{X} -> [X$Elt] .
+    op pop : Stack{X} -> [X$Elt] .
+    op isEmpty : Stack{X} -> Bool .
+
+    var E : X$Elt .
+    var S : Stack{X} .
+    
+    --- pop operation
+    eq pop(push(S, E)) = S .
+    eq pop(empty) = undefined .
+    
+    --- peak operation
+    eq peak(push(S, E)) = E .
+    eq peak(empty) = undefined .
+    
+    --- isEmpty operation
+    eq isEmpty(empty) = true .
+    eq isEmpty(push(S, E)) = false .
+endfm
+
+--- call stack for procedure calls
+fmod CALL-STACK is
+    pr STACK{VEnv} * (
+        sort Stack{VEnv} to CallStack,
+        sort NeStack{VEnv} to NeCallStack,
+        op empty to empCallStack
+    ) .
+endfm
+
+fmod 2TUPLE{X :: TRIV, Y :: TRIV} is
+    sorts Tuple{X, Y} .
+    op ((_,_)) : X$Elt Y$Elt -> Tuple{X, Y} .
+    op p1_ : Tuple{X, Y} -> X$Elt .
+    op p2_ : Tuple{X, Y} -> Y$Elt .
+    eq p1(V1:[X$Elt],V2:[Y$Elt]) = V1:[X$Elt] .
+    eq p2(V1:[X$Elt],V2:[Y$Elt]) = V2:[Y$Elt] .
+endfm
+
+fmod PROC-ENTRY is
+    pr 2TUPLE{Reg,Prog} * (
+        sort Tuple{Reg, Prog} to PInfo
+    ) .
+endfm
+
+view PInfo from TRIV to PROC-ENTRY is
+  sort Elt to PInfo .
+endv
+
+--- Procedure environment
+fmod PENV is
+    pr MAP{Name,PInfo} * (
+        sort Map{Name, PInfo} to PEnv, 
+        sort Entry{Name, PInfo} to PEntry,
+        op empty to empPEnv
+    ) .
+endfm
+
+fmod QC-EXT is
+    pr SYNTAX .
+    pr VENV .
+    pr QC .
+
+    sort GateSet .
+    subsort Gate < GateSet .
+
+    vars V V1 V2 V3 : QVar .
+    vars N N1 N2 N3 : Nat .
+    vars VT1 VT2 : Vect .
+    vars M M1 M2 : Mat .
+    vars US : GateSet .
+    vars E : VEnv .
+    vars U : Gate .
+    vars C : Cpx .
+
+    --- build projectors for measurement
+    op buildMeasOp : Nat QVar VEnv -> Mat .
+    eq buildMeasOp(0, V, E) = P0(E[V]) .
+    eq buildMeasOp(1, V, E) = P1(E[V]) .
+
+    --- build quantum gates
+    op buildGate : Gate Reg VEnv -> Mat .
+    ceq buildGate(U, V, E) = toGate(U, E[V]) if U in (I X Y Z H S T) .
+    ceq buildGate(U, (V1, V2), E) = toGate(U, E[V1], E[V2]) if U in (CX CY CZ SWAP) .
+    ceq buildGate(U, (V1, V2, V3), E) = toGate(U, E[V1], E[V2], E[V3]) if U in (CCX CCZ CSWAP) .
+
+    --- convert unitary operator symbols to acctual quatum gates
+    op toGate : Gate Nat -> Mat .
+    op toGate : Gate Nat Nat -> Mat .
+    op toGate : Gate Nat Nat Nat -> Mat .
+    
+    --- one-qubit gates
+    eq toGate(I, N) = I(N) .
+    eq toGate(X, N) = X(N) .
+    eq toGate(Y, N) = Y(N) .
+    eq toGate(Z, N) = Z(N) .
+    eq toGate(H, N) = H(N) .
+    eq toGate(S, N) = S(N) .
+    eq toGate(T, N) = T(N) .
+    
+    --- two-qubit gates
+    eq toGate(CX, N1, N2) = CX(N1, N2) .
+    eq toGate(CY, N1, N2) = CY(N1, N2) .
+    eq toGate(CZ, N1, N2) = CZ(N1, N2) .
+    eq toGate(SWAP, N1, N2) = SWAP(N1, N2) .
+    
+    --- three-qubit gates
+    eq toGate(CCX, N1, N2, N3) = CCX(N1, N2, N3) .
+    eq toGate(CCZ, N1, N2, N3) = CCZ(N1, N2, N3) .
+    eq toGate(CSWAP, N1, N2, N3) = CSWAP(N1, N2, N3) .
+
+    --- a set of unitary operator symbols
+    op empOp : -> GateSet [ctor] .
+    op __ : GateSet GateSet -> GateSet [ctor comm assoc id: empOp] .
+    op _in_ : Gate GateSet -> Bool .
+    eq U in (U US) = true .
+    eq U in US = false [owise] .
+
+    --- nil matrix
+    op nilM : -> Mat [ctor] .
+    eq nilM (x) M = M .
+    eq M (x) nilM = M .
+
+    --- N -> I (x) I (x) ...
+    op I[_] : Nat -> Mat .
+    eq I[0] = nilM .
+    ceq I[N] = I (x) I[sd(N, 1)] if N > 0 .
+
+    --- projections
+    --- assuming that N1 < N2
+    op (_).P(_,_,_,_) : Vect QVar QVar VEnv Vect -> Bool .
+    eq (VT1).P(V1, V2, E, VT2) = VT1 == buildProjector(size(E), E[V1], E[V2], VT2 x (VT2)^+) x VT1 .
+    op buildProjector : Nat Nat Nat Mat -> Mat .
+    eq buildProjector(N, N1, N2, M1 + M2) = buildProjector(N, N1, N2, M1) + buildProjector(N, N1, N2, M2) .
+    eq buildProjector(N, N1, N2, C . M1 (x) M2) = C . I[N1] (x) M1 (x) I[(N2 - N1 - 1)] (x) M2 (x) I[(N - N2 - 1)] .
+endfm
+
+mod SEMANTICS is
+    pr CALL-STACK .
+    pr QC-EXT .
+    pr PENV .
+
+    sort Config .
+    op <_,_,_,_> : Prog CallStack PEnv Vect -> Config .
+
+    vars S S' S1 S1' S2 : Prog .
+    vars CS CS' : CallStack .
+    vars VE VE' : VEnv .
+    vars PE PE' : PEnv .
+    vars V V' : Vect .
+    vars R R' : Reg .
+    vars Q : QVar .
+    vars U : Gate .
+    vars P : Name .
+
+    --- rewrite rules for transition rules
+    rl  [SK]  : < skip ; S, CS, PE, V > => < S, CS, PE, V > .
+    rl  [UT]  : < U[R] ; S, push(CS, VE), PE, V > => < S, push(CS, VE), PE, buildGate(U, R, VE) x V > .
+    crl [IF0] : < if M[Q] = 1 then S1 else S2 fi ; S, push(CS, VE), PE, V > => < S2 ; S, push(CS, VE), PE, V' > if V' := buildMeasOp(0, Q, VE) x V /\ V' =/= O .
+    crl [IF1] : < if M[Q] = 1 then S1 else S2 fi ; S, push(CS, VE), PE, V > => < S1 ; S, push(CS, VE), PE, V' > if V' := buildMeasOp(1, Q, VE) x V /\ V' =/= O .
+    crl [L0]  : < while M[Q] = 1 do S od ; S', push(CS, VE), PE, V > => < S', push(CS, VE), PE, V' > if V' := buildMeasOp(0, Q, VE) x V /\ V' =/= O .
+    crl [L1]  : < while M[Q] = 1 do S od ; S', push(CS, VE), PE, V > => < S ; (while M[Q] = 1 do S od) ; S', push(CS, VE), PE, V' > if V' := buildMeasOp(1, Q, VE) x V /\ V' =/= O .
+    rl  [PD]  : < proc P (R) { S } ; S', CS, VE, PE, V > => < S', CS, insert(P, (R, S), PE), V > .
+    crl [CL]  : < call P(R') ; S', push(CS, VE), ((P |-> (R, S)), PE), V > => < (S ; return ; S'), push(push(CS, VE), VE'), ((P |-> (R, S)), PE), V > if VE' := resolve(R, R', VE) .
+    rl  [RE]  : < return ; S', CS, VE, PE, V > => < S', pop(CS), PE, V > .
+    crl [AT]  : < atomic { S } ; S', CS, PE, V > => < S', CS', PE', V' > if < S, CS, PE, V > => < emp, CS', PE', V' > .
+endm

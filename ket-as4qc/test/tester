@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo "~~~~~~~~~~ TESTING  ~~~~~~~~~~"
+./qc-test
+./teleport
+echo "DONE!"

@@ -1,0 +1,3 @@
+set print attribute on .
+set verbose on .
+set trace on .

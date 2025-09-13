@@ -1,0 +1,69 @@
+load qrp.maude
+
+mod NWCODING is
+    pr SEMANTICS .
+
+    op EPR : -> Vect .
+    eq EPR = (1 ./ sqrt(2)) . |0>(x)|0> + (1 ./ sqrt(2)) . |1>(x)|1> .
+
+    op prog : -> Prog .
+    op qs : -> Vect .
+    op venv : -> VEnv .
+    eq qs = |0> (x) |0> (x) |0> (x) |0> (x) |0> (x) 
+            |0> (x) |0> (x) |0> (x) |0> (x) |0> (x) 
+            |0> (x) |0> (x) |0> (x) |0> .
+    eq venv = (
+        v('q1) |-> 0, v('q2) |-> 1, v('q3) |-> 2, v('q4) |-> 3,
+        v('q5) |-> 4, v('q6) |-> 5, v('q7) |-> 6, v('q8) |-> 7,
+        v('q9) |-> 8, v('q10) |-> 9, v('q11) |-> 10, v('q12) |-> 11,
+        v('q13) |-> 12, v('q14) |-> 13
+    ) .
+    eq prog = 
+        proc n('con) (v('p1), v('p2), v('p3)) {
+            CX[v('p1), v('p2)] ;
+            if M[v('p2)] = 1 then X[v('p3)] else skip fi
+        } ;
+        proc n('fanout) (v('p1), v('p2), v('p3), v('p4), v('p5)) {
+            call n('con)(v('p1), v('p2), v('p3)) ;
+            call n('con)(v('p1), v('p4), v('p5))
+        } ;
+        proc n('add) (v('p1), v('p2), v('p3), v('p4)) {
+            CX[v('p1), v('p3)] ;
+            CX[v('p2), v('p3)] ;
+            if M[v('p3)] = 1 then X[v('p4)] else skip fi
+        } ;
+        proc n('rem) (v('p1), v('p2)) {
+            H[v('p1)] ;
+            if M[v('p1)] = 1 then Z[v('p2)] else skip fi
+        } ;
+        proc n('remadd) (v('p3), v('p1), v('p2)) {
+            H[v('p3)] ;
+            if M[v('p3)] = 1 then Z[v('p1)] ; Z[v('p2)] else skip fi
+        } ;
+        proc n('prepare) (v('p1), v('p2), v('p3), v('p4), v('p5), v('p6), v('p7), v('p8), v('p9), v('p10), v('p11), v('p12), v('p13), v('p14)) {
+            H[v('p1)] ; CX[v('p1), v('p2)] ; H[v('p3)] ; CX[v('p3), v('p4)] ;
+            H[v('p5)] ; CX[v('p5), v('p6)] ; H[v('p7)] ; CX[v('p7), v('p8)] ;
+            H[v('p9)] ; CX[v('p9), v('p10)] ; H[v('p11)] ; CX[v('p11), v('p12)] ;
+            H[v('p13)] ; CX[v('p13), v('p14)]
+        } ;
+        proc n('nwcoding) (v('p1), v('p2), v('p3), v('p4), v('p5), v('p6), v('p7), v('p8), v('p9), v('p10), v('p11), v('p12), v('p13), v('p14)) {
+            call n('con)(v('p1), v('p3), v('p4)) ;
+            call n('con)(v('p5), v('p7), v('p8)) ;
+            call n('add)(v('p4), v('p8), v('p9), v('p10)) ;
+            call n('fanout)(v('p10), v('p11), v('p12), v('p13), v('p14)) ;
+            CX[v('p14), v('p6)] ;
+            CX[v('p12), v('p2)] ;
+            call n('rem)(v('p12), v('p10)) ;
+            call n('rem)(v('p14), v('p10)) ;
+            call n('remadd)(v('p10), v('p4), v('p8)) ;
+            call n('rem)(v('p4), v('p1)) ;
+            call n('rem)(v('p8), v('p5))
+        } ;
+        atomic {
+        call n('prepare)(v('q1), v('q2), v('q3), v('q4), v('q5), v('q6), v('q7), v('q8), v('q9), v('q10), v('q11), v('q12), v('q13), v('q14)) 
+        } ;
+        --- call n('prepare)(v('q1), v('q2), v('q3), v('q4), v('q5), v('q6), v('q7), v('q8), v('q9), v('q10), v('q11), v('q12), v('q13), v('q14)) ;
+        call n('nwcoding)(v('q1), v('q2), v('q3), v('q4), v('q5), v('q6), v('q7), v('q8), v('q9), v('q10), v('q11), v('q12), v('q13), v('q14)) .
+endm
+
+--- search in NWCODING : < prog, push(empCallStack, venv), empPEnv, qs > =>! < S:Prog, CS:CallStack, PE:PEnv, V:Vect > such that S:Prog == emp /\ (V:Vect).P(v('q1), v('q6), venv, EPR) /\ (V:Vect).P(v('q2), v('q5), venv, EPR) .

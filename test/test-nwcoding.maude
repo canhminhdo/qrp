@@ -1,0 +1,3 @@
+load ../nwcoding.maude
+
+search in NWCODING : < prog, push(empCallStack, venv), empPEnv, qs > =>! < S:Prog, CS:CallStack, PE:PEnv, V:Vect > such that S:Prog == emp /\ (V:Vect).P(v('q1), v('q6), venv, EPR) /\ (V:Vect).P(v('q2), v('q5), venv, EPR) .

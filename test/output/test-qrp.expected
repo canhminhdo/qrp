@@ -1,0 +1,64 @@
+==========================================
+reduce in SEMANTICS : buildGate(I, v('q1), v('q1) |-> 1) == I(1) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(X, v('q1), v('q1) |-> 1) == X(1) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(Y, v('q1), v('q1) |-> 1) == Y(1) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(Z, v('q1), v('q1) |-> 1) == Z(1) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(H, v('q1), v('q1) |-> 1) == H(1) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(S, v('q1), v('q1) |-> 1) == S(1) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(T, v('q1), v('q1) |-> 1) == T(1) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(CX, v('q1), v('q2), (v('q1) |-> 1, v('q2) |->
+    2)) == CX(1, 2) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(CY, v('q1), v('q2), (v('q1) |-> 1, v('q2) |->
+    2)) == CY(1, 2) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(CZ, v('q1), v('q2), (v('q1) |-> 1, v('q2) |->
+    2)) == CZ(1, 2) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(SWAP, v('q1), v('q2), (v('q1) |-> 1, v('q2) |->
+    2)) == SWAP(1, 2) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(CCX, v('q1), v('q2), v('q3), (v('q1) |-> 1, v(
+    'q2) |-> 2, v('q3) |-> 3)) == CCX(1, 2, 3) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(CCZ, v('q1), v('q2), v('q3), (v('q1) |-> 1, v(
+    'q2) |-> 2, v('q3) |-> 3)) == CCZ(1, 2, 3) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildGate(CSWAP, v('q1), v('q2), v('q3), (v('q1) |-> 1,
+    v('q2) |-> 2, v('q3) |-> 3)) == CSWAP(1, 2, 3) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildMeasOp(0, v('q1), v('q1) |-> 1) == P0(1) .
+result Bool: true
+==========================================
+reduce in SEMANTICS : buildMeasOp(1, v('q1), v('q1) |-> 1) == P1(1) .
+result Bool: true
+==========================================
+rewrite in SEMANTICS : < X[v('q1)] ; H[v('q1)], v('q1) |-> 0, empPEnv, |0> > .
+result Config: < X[v('q1)] ; H[v('q1)], v('q1) |-> 0, empPEnv, |0> >
+==========================================
+search [1] in SEMANTICS : < H[v('q)] ; while M[v('q)] = 1 do H[v('q)] od, v('q)
+    |-> 0, empPEnv, |1> > =>! < emp, E:VEnv, empPEnv, V > .
+
+No solution.
+Bye.
