@@ -128,7 +128,7 @@ fmod CALL-STACK is
     pr STACK{VEnv} * (
         sort Stack{VEnv} to CallStack,
         sort NeStack{VEnv} to NeCallStack,
-        op empty to empCallStack
+        op empty to empCS
     ) .
 endfm
 

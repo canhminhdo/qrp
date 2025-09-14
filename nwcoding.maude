@@ -66,4 +66,4 @@ mod NWCODING is
         call n('nwcoding)(v('q1), v('q2), v('q3), v('q4), v('q5), v('q6), v('q7), v('q8), v('q9), v('q10), v('q11), v('q12), v('q13), v('q14)) .
 endm
 
---- search in NWCODING : < prog, push(empCallStack, venv), empPEnv, qs > =>! < S:Prog, CS:CallStack, PE:PEnv, V:Vect > such that S:Prog == emp /\ (V:Vect).P(v('q1), v('q6), venv, EPR) /\ (V:Vect).P(v('q2), v('q5), venv, EPR) .
+--- search in NWCODING : < prog, push(empCS, venv), empPEnv, qs > =>! < S:Prog, CS:CallStack, PE:PEnv, V:Vect > such that S:Prog == emp /\ (V:Vect).P(v('q1), v('q6), venv, EPR) /\ (V:Vect).P(v('q2), v('q5), venv, EPR) .
